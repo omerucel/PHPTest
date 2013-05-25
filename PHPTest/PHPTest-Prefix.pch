@@ -1,0 +1,7 @@
+//
+// Prefix header for all source files of the 'PHPTest' target in the 'PHPTest' project
+//
+
+#ifdef __OBJC__
+    #import <Cocoa/Cocoa.h>
+#endif
