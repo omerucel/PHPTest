@@ -7,8 +7,13 @@
 //
 
 #import "OUAppDelegate.h"
+#import "OUCommander.h"
 
 @implementation OUAppDelegate
+
+@synthesize webView;
+@synthesize splitView;
+@synthesize outputWebView;
 
 @synthesize persistentStoreCoordinator = _persistentStoreCoordinator;
 @synthesize managedObjectModel = _managedObjectModel;
@@ -16,7 +21,44 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
-    // Insert code here to initialize your application
+    [splitView setPosition:splitView.bounds.size.width ofDividerAtIndex:0];
+}
+
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{
+    return YES;
+}
+
+- (void)awakeFromNib{
+    NSString *resourcePath = [[NSBundle mainBundle] resourcePath];
+    NSString *htmlPath = [resourcePath stringByAppendingString:@"/index.html"];
+    [[webView mainFrame] loadRequest:[NSURLRequest requestWithURL:[NSURL fileURLWithPath:htmlPath]]];
+}
+
+- (void)execute:(id)sender{
+    [splitView setPosition:splitView.bounds.size.height/2 ofDividerAtIndex:0];
+
+    NSString *response = [webView stringByEvaluatingJavaScriptFromString:@"getContent();"];
+
+    NSString *sourceFilePath = @"/tmp/php_test_source_code.php";
+    [response writeToFile:sourceFilePath atomically:NO encoding:NSUTF8StringEncoding error:nil];
+
+    if (response == nil)
+        return;
+
+    OUCommander *commander = [[OUCommander alloc] init];
+    OUCommanderResponse *commanderResponse = [commander run:@"/usr/local/bin/php" properties:[[NSArray alloc] initWithObjects:@"-d", @"display_errors=stderr", @"-f", sourceFilePath, nil]];
+    
+    if ([commanderResponse hasError])
+    {
+        [[outputWebView mainFrame] loadHTMLString:[commanderResponse getError] baseURL:nil];
+    }else{
+        [[outputWebView mainFrame] loadHTMLString:[commanderResponse getOutput] baseURL:nil];
+    }
+}
+
+- (IBAction)toggleOutput:(id)sender
+{
+    [splitView setPosition:splitView.bounds.size.width ofDividerAtIndex:0];
 }
 
 // Returns the directory the application uses to store the Core Data store file. This code uses a directory named "com.omerucel.PHPTest" in the user's Application Support directory.
