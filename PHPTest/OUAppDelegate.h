@@ -9,12 +9,17 @@
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
 #import "OUTaskAsync.h"
+#import "OUProfileTableDataSource.h"
 
 @interface OUAppDelegate : NSObject <NSApplicationDelegate>{
     OUTaskAsync *taskAsync;
     BOOL isRunning;
+    OUProfileTableDataSource *profileTableDataSource;
 }
 
+@property (assign) IBOutlet NSTableView *profileTable;
+@property (assign) IBOutlet NSWindow *settingsWindow;
+@property (assign) IBOutlet NSPopUpButton *profileCombobox;
 @property (assign) IBOutlet NSToolbar *toolbar;
 @property (assign) IBOutlet NSTextField *statusText;
 @property (assign) IBOutlet NSView *statusBar;
@@ -32,8 +37,14 @@
 - (IBAction)execute:(id)sender;
 - (IBAction)terminate:(id)sender;
 - (IBAction)saveAction:(id)sender;
+- (IBAction)showSettings:(id)sender;
+- (IBAction)hideSettings:(id)sender;
 
 - (void)dataAvailable:(NSNotification *)notification;
 - (void)taskTerminated:(NSNotification *)notification;
+- (void)reloadProfileCombobox;
+
+// Settings
+- (IBAction)segControlClicked:(id)sender;
 
 @end

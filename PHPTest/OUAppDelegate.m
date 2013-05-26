@@ -8,9 +8,13 @@
 
 #import "OUAppDelegate.h"
 #import "OUTaskAsync.h"
+#import "OUProfileTableDataSource.h"
 
 @implementation OUAppDelegate
 
+@synthesize profileTable;
+@synthesize settingsWindow;
+@synthesize profileCombobox;
 @synthesize toolbar;
 @synthesize statusText;
 @synthesize statusBar;
@@ -31,6 +35,17 @@
     taskAsync = [[OUTaskAsync alloc] init];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(dataAvailable:) name:OUTaskAsyncDataAvailableNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(taskTerminated:) name:OUTaskAsyncTaskTerminatedNotification object:nil];
+
+    profileTableDataSource = [[OUProfileTableDataSource alloc] init:[self managedObjectContext]];
+    [profileTable setDataSource:profileTableDataSource];
+    [self reloadProfileCombobox];
+}
+
+- (void)reloadProfileCombobox{
+    [profileCombobox removeAllItems];
+
+    for(NSString *info in [profileTableDataSource getItems])
+        [profileCombobox addItemWithTitle:info];
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{
@@ -104,6 +119,59 @@
     [toolbar validateVisibleItems];
 }
 
+- (void)showSettings:(id)sender{
+    [profileTable reloadData];
+    [NSApp beginSheet:settingsWindow modalForWindow:_window modalDelegate:self didEndSelector:@selector(didEndSheet:returnCode:contextInfo:) contextInfo:nil];
+}
+
+- (void)hideSettings:(id)sender{
+    [NSApp endSheet:settingsWindow];
+}
+
+- (void)didEndSheet:(NSWindow *)sheet returnCode:(NSInteger)returnCode contextInfo:(void *)contextInfo{
+    [sheet orderOut:self];
+}
+
+- (IBAction)segControlClicked:(id)sender{
+    NSInteger clickedSegment = [sender selectedSegment];
+    NSInteger selectedRow = [profileTable selectedRow];
+
+    if (clickedSegment == 0)
+    {
+        // Add
+    }else if(clickedSegment == 1){
+        // Edit
+        if (selectedRow == -1){
+            NSAlert *alert = [[NSAlert alloc] init];
+            [alert addButtonWithTitle:@"OK"];
+            [alert setMessageText:@"Please select at least one profile."];
+            [alert setAlertStyle:NSWarningAlertStyle];
+            [alert runModal];
+        }
+    }else if(clickedSegment == 2){
+        // Remove
+        NSAlert *alert = [[NSAlert alloc] init];
+        if (selectedRow == -1){
+            [alert addButtonWithTitle:@"OK"];
+            [alert setMessageText:@"Please select at least one profile."];
+            [alert setAlertStyle:NSWarningAlertStyle];
+            [alert runModal];
+        }else{
+            [alert addButtonWithTitle:@"Yes"];
+            [alert addButtonWithTitle:@"No"];
+            [alert setMessageText:@"Selected profile will be deleted immediately. Are you sure?"];
+            [alert setAlertStyle:NSWarningAlertStyle];
+
+            if ([alert runModal] == NSAlertFirstButtonReturn)
+            {
+                [profileTableDataSource remove:selectedRow];
+                [profileTable reloadData];
+                [self reloadProfileCombobox];
+            }
+        }
+    }
+}
+
 // Returns the directory the application uses to store the Core Data store file. This code uses a directory named "com.omerucel.PHPTest" in the user's Application Support directory.
 - (NSURL *)applicationFilesDirectory
 {
@@ -119,7 +187,7 @@
         return _managedObjectModel;
     }
 	
-    NSURL *modelURL = [[NSBundle mainBundle] URLForResource:@"PHPTest" withExtension:@"momd"];
+    NSURL *modelURL = [[NSBundle mainBundle] URLForResource:@"Model" withExtension:@"momd"];
     _managedObjectModel = [[NSManagedObjectModel alloc] initWithContentsOfURL:modelURL];
     return _managedObjectModel;
 }
@@ -166,7 +234,7 @@
         }
     }
     
-    NSURL *url = [applicationFilesDirectory URLByAppendingPathComponent:@"PHPTest.storedata"];
+    NSURL *url = [applicationFilesDirectory URLByAppendingPathComponent:@"Model.storedata"];
     NSPersistentStoreCoordinator *coordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel:mom];
     if (![coordinator addPersistentStoreWithType:NSXMLStoreType configuration:nil URL:url options:nil error:&error]) {
         [[NSApplication sharedApplication] presentError:error];
