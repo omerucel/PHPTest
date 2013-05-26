@@ -28,8 +28,27 @@
     return self;
 }
 
+- (NSManagedObject *)getItem:(NSString *)name{
+    NSError *error;
+    NSFetchRequest *fetchRequest = [[NSFetchRequest alloc] init];
+    NSEntityDescription *entity = [NSEntityDescription entityForName:@"Profile" inManagedObjectContext:managedObjectContext];
+    [fetchRequest setEntity:entity];
+    [fetchRequest setPredicate:[NSPredicate predicateWithFormat:[NSString stringWithFormat:@"name == '%@'", name]]];
+    NSArray *records = [managedObjectContext executeFetchRequest:fetchRequest error:&error];
+    if ([records count] > 0)
+    {
+        return [records objectAtIndex:0];
+    }else{
+        return nil;
+    }
+}
+
 - (NSArray *)getItems{
     return [NSArray arrayWithArray:items];
+}
+
+- (BOOL)hasItem{
+    return [items count] > 0;
 }
 
 - (void)remove:(NSInteger)index{
@@ -54,6 +73,7 @@
     [profile setValue:version forKey:@"version"];
     [profile setValue:bin forKey:@"bin"];
     [managedObjectContext insertObject:profile];
+    [items addObject:name];
 }
 
 - (id)tableView:(NSTableView *)tableView objectValueForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row{

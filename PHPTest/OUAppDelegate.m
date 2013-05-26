@@ -12,6 +12,7 @@
 
 @implementation OUAppDelegate
 
+@synthesize profileWindow;
 @synthesize profileTable;
 @synthesize settingsWindow;
 @synthesize profileCombobox;
@@ -78,6 +79,23 @@
 }
 
 - (void)execute:(id)sender{
+    if ([profileTableDataSource hasItem] == NO)
+    {
+        NSAlert *alert = [[NSAlert alloc] init];
+        [alert addButtonWithTitle:@"OK"];
+        [alert setMessageText:@"Please add a profile."];
+        [alert setAlertStyle:NSWarningAlertStyle];
+        [alert runModal];
+        [self showSettings:nil];
+        return;
+    }
+
+    NSManagedObject *profile = [profileTableDataSource getItem:[[profileCombobox selectedItem] title]];
+    if (profile == nil)
+    {
+        return;
+    }
+
     isRunning = YES;
     [toolbar validateVisibleItems];
     [statusText setStringValue:@"Running..."];
@@ -95,12 +113,11 @@
         return;
     }
 
-    [taskAsync launch:@"/usr/local/bin/php" properties:[[NSArray alloc] initWithObjects:@"-d", @"display_errors=stderr", @"-d", @"html_errors=1", @"-f", sourceFilePath, nil]];
+    [taskAsync launch:[profile valueForKey:@"bin"] properties:[[NSArray alloc] initWithObjects:@"-d", @"display_errors=stderr", @"-d", @"html_errors=1", @"-f", sourceFilePath, nil]];
 }
 
 - (void)terminate:(id)sender{
-    [statusText setStringValue:[NSString stringWithFormat:@"Run completed in %f second", [taskAsync getCompletedTime]]];    
-    NSLog(@"%f", [taskAsync getCompletedTime]);
+    [statusText setStringValue:[NSString stringWithFormat:@"Run completed in %f second", [taskAsync getCompletedTime]]];
     [taskAsync stop];
     isRunning = NO;
     [toolbar validateVisibleItems];
@@ -108,28 +125,34 @@
 
 - (void)dataAvailable:(NSNotification *)notification{
     NSMutableString *content = (NSMutableString *)[notification object];
-    NSLog(@"%@", content);
     [[outputWebView mainFrame] loadHTMLString:content baseURL:nil];
 }
 
 - (void)taskTerminated:(NSNotification *)notification{
     [statusText setStringValue:[NSString stringWithFormat:@"Run completed in %f second", [taskAsync getCompletedTime]]];
-    NSLog(@"Task Terminated");
     isRunning = NO;
     [toolbar validateVisibleItems];
 }
 
 - (void)showSettings:(id)sender{
     [profileTable reloadData];
-    [NSApp beginSheet:settingsWindow modalForWindow:_window modalDelegate:self didEndSelector:@selector(didEndSheet:returnCode:contextInfo:) contextInfo:nil];
+    [NSApp beginSheet:settingsWindow modalForWindow:_window modalDelegate:self didEndSelector:@selector(didEndSettings:returnCode:contextInfo:) contextInfo:nil];
 }
 
 - (void)hideSettings:(id)sender{
     [NSApp endSheet:settingsWindow];
 }
 
-- (void)didEndSheet:(NSWindow *)sheet returnCode:(NSInteger)returnCode contextInfo:(void *)contextInfo{
+- (void)hideProfile:(id)sender{
+    [NSApp endSheet:profileWindow];
+}
+
+- (void)didEndSettings:(NSWindow *)sheet returnCode:(NSInteger)returnCode contextInfo:(void *)contextInfo{
     [sheet orderOut:self];
+}
+
+- (void)didEndProfile:(NSWindow *)sheet returnCode:(NSInteger)returnCode contextInfo:(void *)contextInfo{
+    [sheet orderOut:settingsWindow];
 }
 
 - (IBAction)segControlClicked:(id)sender{
@@ -139,6 +162,7 @@
     if (clickedSegment == 0)
     {
         // Add
+        [NSApp beginSheet:profileWindow modalForWindow:settingsWindow modalDelegate:self didEndSelector:@selector(didEndProfile:returnCode:contextInfo:) contextInfo:nil];
     }else if(clickedSegment == 1){
         // Edit
         if (selectedRow == -1){
@@ -168,6 +192,59 @@
                 [profileTable reloadData];
                 [self reloadProfileCombobox];
             }
+        }
+    }
+}
+
+- (IBAction)newProfile:(id)sender{
+    if ([[_profileWindowName stringValue] length] == 0)
+    {
+        NSAlert *alert = [[NSAlert alloc] init];
+        [alert addButtonWithTitle:@"OK"];
+        [alert setMessageText:@"Please input a profile name."];
+        [alert setAlertStyle:NSWarningAlertStyle];
+        [alert runModal];
+    }else{
+        NSFileManager *fileManager = [[NSFileManager alloc] init];
+        
+        if ([fileManager isExecutableFileAtPath:[_profileWindowPath stringValue]])
+        {
+            [profileTableDataSource create:[_profileWindowName stringValue] version:@"" bin:[_profileWindowPath stringValue]];
+            [profileTable reloadData];
+            [self reloadProfileCombobox];
+            [NSApp endSheet:profileWindow];
+        }else{
+            NSAlert *alert = [[NSAlert alloc] init];
+            [alert addButtonWithTitle:@"OK"];
+            [alert setMessageText:@"Please select a executable file."];
+            [alert setAlertStyle:NSWarningAlertStyle];
+            [alert runModal];
+        }
+    }
+}
+
+- (IBAction)openPhpBinPath:(id)sender{
+    NSOpenPanel* openDlg = [NSOpenPanel openPanel];
+    
+    [openDlg setCanChooseFiles:YES];
+    [openDlg setCanChooseDirectories:NO];
+    [openDlg setCanCreateDirectories:NO];
+    [openDlg setShowsHiddenFiles:YES];
+
+    if ([openDlg runModal] == NSOKButton)
+    {
+        NSURL *filename = [openDlg URL];
+        NSFileManager *fileManager = [[NSFileManager alloc] init];
+
+        if ([fileManager isExecutableFileAtPath:[filename path]])
+        {
+            [_profileWindowPath setStringValue:[filename path]];
+        }else{
+            NSAlert *alert = [[NSAlert alloc] init];
+            [alert addButtonWithTitle:@"OK"];
+            [alert setMessageText:@"Please select a executable file."];
+            [alert setAlertStyle:NSWarningAlertStyle];
+            [alert runModal];
         }
     }
 }

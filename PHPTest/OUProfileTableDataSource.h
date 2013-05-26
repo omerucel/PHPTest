@@ -17,5 +17,7 @@
 - (void)remove:(NSInteger)index;
 - (NSArray *)getItems;
 - (void)create:(NSString *)name version:(NSString *)version bin:(NSString *)bin;
+- (BOOL)hasItem;
+- (NSManagedObject *)getItem:(NSString *)name;
 
 @end

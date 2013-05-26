@@ -18,17 +18,26 @@
 }
 
 @property (assign) IBOutlet NSTableView *profileTable;
-@property (assign) IBOutlet NSWindow *settingsWindow;
 @property (assign) IBOutlet NSPopUpButton *profileCombobox;
+
 @property (assign) IBOutlet NSToolbar *toolbar;
+
 @property (assign) IBOutlet NSTextField *statusText;
 @property (assign) IBOutlet NSView *statusBar;
+
 @property (assign) IBOutlet NSToolbarItem *runButton;
 @property (assign) IBOutlet NSToolbarItem *stopButton;
+
 @property (assign) IBOutlet NSWindow *window;
-@property (nonatomic, retain) IBOutlet WebView *webView;
+@property (assign) IBOutlet NSWindow *settingsWindow;
+@property (assign) IBOutlet NSWindow *profileWindow;
+
 @property (assign) IBOutlet NSSplitView *splitView;
+@property (nonatomic, retain) IBOutlet WebView *webView;
 @property (nonatomic, retain) IBOutlet WebView *outputWebView;
+
+@property (assign) IBOutlet NSTextField *profileWindowPath;
+@property (assign) IBOutlet NSTextField *profileWindowName;
 
 @property (readonly, strong, nonatomic) NSPersistentStoreCoordinator *persistentStoreCoordinator;
 @property (readonly, strong, nonatomic) NSManagedObjectModel *managedObjectModel;
@@ -38,7 +47,6 @@
 - (IBAction)terminate:(id)sender;
 - (IBAction)saveAction:(id)sender;
 - (IBAction)showSettings:(id)sender;
-- (IBAction)hideSettings:(id)sender;
 
 - (void)dataAvailable:(NSNotification *)notification;
 - (void)taskTerminated:(NSNotification *)notification;
@@ -46,5 +54,9 @@
 
 // Settings
 - (IBAction)segControlClicked:(id)sender;
+- (IBAction)hideSettings:(id)sender;
+- (IBAction)hideProfile:(id)sender;
+- (IBAction)newProfile:(id)sender;
+- (IBAction)openPhpBinPath:(id)sender;
 
 @end
