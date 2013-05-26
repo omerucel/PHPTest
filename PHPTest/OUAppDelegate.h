@@ -8,9 +8,18 @@
 
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
+#import "OUTaskAsync.h"
 
-@interface OUAppDelegate : NSObject <NSApplicationDelegate>
+@interface OUAppDelegate : NSObject <NSApplicationDelegate>{
+    OUTaskAsync *taskAsync;
+    BOOL isRunning;
+}
 
+@property (assign) IBOutlet NSToolbar *toolbar;
+@property (assign) IBOutlet NSTextField *statusText;
+@property (assign) IBOutlet NSView *statusBar;
+@property (assign) IBOutlet NSToolbarItem *runButton;
+@property (assign) IBOutlet NSToolbarItem *stopButton;
 @property (assign) IBOutlet NSWindow *window;
 @property (nonatomic, retain) IBOutlet WebView *webView;
 @property (assign) IBOutlet NSSplitView *splitView;
@@ -21,7 +30,10 @@
 @property (readonly, strong, nonatomic) NSManagedObjectContext *managedObjectContext;
 
 - (IBAction)execute:(id)sender;
-- (IBAction)toggleOutput:(id)sender;
+- (IBAction)terminate:(id)sender;
 - (IBAction)saveAction:(id)sender;
+
+- (void)dataAvailable:(NSNotification *)notification;
+- (void)taskTerminated:(NSNotification *)notification;
 
 @end

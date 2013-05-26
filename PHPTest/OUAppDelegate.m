@@ -7,10 +7,15 @@
 //
 
 #import "OUAppDelegate.h"
-#import "OUCommander.h"
+#import "OUTaskAsync.h"
 
 @implementation OUAppDelegate
 
+@synthesize toolbar;
+@synthesize statusText;
+@synthesize statusBar;
+@synthesize runButton;
+@synthesize stopButton;
 @synthesize webView;
 @synthesize splitView;
 @synthesize outputWebView;
@@ -21,20 +26,46 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
-    [splitView setPosition:splitView.bounds.size.width ofDividerAtIndex:0];
+    isRunning = NO;
+
+    taskAsync = [[OUTaskAsync alloc] init];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(dataAvailable:) name:OUTaskAsyncDataAvailableNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(taskTerminated:) name:OUTaskAsyncTaskTerminatedNotification object:nil];
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{
     return YES;
 }
 
+- (BOOL)validateToolbarItem:(NSToolbarItem *)theItem{
+    BOOL enable = YES;
+
+    if ([[theItem itemIdentifier] isEqualToString:@"run"]){
+        enable = isRunning ? NO : YES;
+    }else if([[theItem itemIdentifier] isEqualToString:@"stop"]){
+        enable = isRunning ? YES : NO;
+    }
+
+    return enable;
+}
+
+- (void)dealloc{
+    [taskAsync stop];
+}
+
 - (void)awakeFromNib{
     NSString *resourcePath = [[NSBundle mainBundle] resourcePath];
     NSString *htmlPath = [resourcePath stringByAppendingString:@"/index.html"];
     [[webView mainFrame] loadRequest:[NSURLRequest requestWithURL:[NSURL fileURLWithPath:htmlPath]]];
+
+    [[outputWebView preferences] setDefaultFontSize:15];
+    [[outputWebView preferences] setStandardFontFamily:@"Lucida Grande"];
 }
 
 - (void)execute:(id)sender{
+    isRunning = YES;
+    [toolbar validateVisibleItems];
+    [statusText setStringValue:@"Running..."];
     [splitView setPosition:splitView.bounds.size.height/2 ofDividerAtIndex:0];
 
     NSString *response = [webView stringByEvaluatingJavaScriptFromString:@"getContent();"];
@@ -43,22 +74,34 @@
     [response writeToFile:sourceFilePath atomically:NO encoding:NSUTF8StringEncoding error:nil];
 
     if (response == nil)
-        return;
-
-    OUCommander *commander = [[OUCommander alloc] init];
-    OUCommanderResponse *commanderResponse = [commander run:@"/usr/local/bin/php" properties:[[NSArray alloc] initWithObjects:@"-d", @"display_errors=stderr", @"-f", sourceFilePath, nil]];
-    
-    if ([commanderResponse hasError])
     {
-        [[outputWebView mainFrame] loadHTMLString:[commanderResponse getError] baseURL:nil];
-    }else{
-        [[outputWebView mainFrame] loadHTMLString:[commanderResponse getOutput] baseURL:nil];
+        [runButton setEnabled:YES];
+        [stopButton setEnabled:NO];
+        return;
     }
+
+    [taskAsync launch:@"/usr/local/bin/php" properties:[[NSArray alloc] initWithObjects:@"-d", @"display_errors=stderr", @"-d", @"html_errors=1", @"-f", sourceFilePath, nil]];
 }
 
-- (IBAction)toggleOutput:(id)sender
-{
-    [splitView setPosition:splitView.bounds.size.width ofDividerAtIndex:0];
+- (void)terminate:(id)sender{
+    [statusText setStringValue:[NSString stringWithFormat:@"Run completed in %f second", [taskAsync getCompletedTime]]];    
+    NSLog(@"%f", [taskAsync getCompletedTime]);
+    [taskAsync stop];
+    isRunning = NO;
+    [toolbar validateVisibleItems];
+}
+
+- (void)dataAvailable:(NSNotification *)notification{
+    NSMutableString *content = (NSMutableString *)[notification object];
+    NSLog(@"%@", content);
+    [[outputWebView mainFrame] loadHTMLString:content baseURL:nil];
+}
+
+- (void)taskTerminated:(NSNotification *)notification{
+    [statusText setStringValue:[NSString stringWithFormat:@"Run completed in %f second", [taskAsync getCompletedTime]]];
+    NSLog(@"Task Terminated");
+    isRunning = NO;
+    [toolbar validateVisibleItems];
 }
 
 // Returns the directory the application uses to store the Core Data store file. This code uses a directory named "com.omerucel.PHPTest" in the user's Application Support directory.
