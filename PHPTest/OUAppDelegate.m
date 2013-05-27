@@ -164,15 +164,6 @@
         // Add
         [NSApp beginSheet:profileWindow modalForWindow:settingsWindow modalDelegate:self didEndSelector:@selector(didEndProfile:returnCode:contextInfo:) contextInfo:nil];
     }else if(clickedSegment == 1){
-        // Edit
-        if (selectedRow == -1){
-            NSAlert *alert = [[NSAlert alloc] init];
-            [alert addButtonWithTitle:@"OK"];
-            [alert setMessageText:@"Please select at least one profile."];
-            [alert setAlertStyle:NSWarningAlertStyle];
-            [alert runModal];
-        }
-    }else if(clickedSegment == 2){
         // Remove
         NSAlert *alert = [[NSAlert alloc] init];
         if (selectedRow == -1){
