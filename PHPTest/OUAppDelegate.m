@@ -96,6 +96,8 @@
         return;
     }
 
+    [[outputWebView mainFrame] loadHTMLString:@"" baseURL:nil];
+
     isRunning = YES;
     [toolbar validateVisibleItems];
     [statusText setStringValue:@"Running..."];
